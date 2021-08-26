@@ -1,18 +1,25 @@
 <template>
   <div class="home">
-    <img alt="Vue logo" src="../assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+    <canvas ref="can" width="200" height="200"></canvas>
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
-import HelloWorld from '@/components/HelloWorld.vue'
+import { fabric } from 'fabric'
 
 export default {
   name: 'Home',
-  components: {
-    HelloWorld
+  components: {},
+  mounted () {
+    const ref = this.$refs.can
+    const canvas = new fabric.Canvas(ref)
+    const rect = new fabric.Rect({
+      fill: 'red',
+      width: 20,
+      height: 20
+    })
+    canvas.add(rect)
   }
 }
 </script>

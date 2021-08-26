@@ -1,5 +1,7 @@
 # signaturepadbaseonfabricjs
 
+A signaturePad using [Fabric.js](http://fabricjs.com/)
+
 ## Project setup
 ```
 npm install
