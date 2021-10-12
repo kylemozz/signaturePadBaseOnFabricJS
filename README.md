@@ -1,8 +1,7 @@
 # signaturepadbaseonfabricjs
 
 A signaturePad using [Fabric.js](http://fabricjs.com/)
-
-## Project setup
+## [Demo](https://kylemozz.github.io/signaturePadBaseOnFabricJS/dist/index.html)## Project setup
 ```
 npm install
 ```
