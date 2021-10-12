@@ -40,12 +40,32 @@ export default {
       canvas: '', // fabricCanvas
       historyLock: false, // 前进后退列表锁
       undoHistory: [], // 后退历史列表
-      redoHistroy: [] // 前进历史列表
+      redoHistroy: [], // 前进历史列表,
+      vLinePatternBrush: '' // 测试笔刷
     }
   },
   mounted () {
     this.canvasPorpertyInit()
 
+    /* 创建笔刷 */
+    if (fabric.PatternBrush) {
+      this.vLinePatternBrush = new fabric.PatternBrush(this.canvas)
+      this.vLinePatternBrush.getPatternSrc = function () {
+        var patternCanvas = fabric.document.createElement('canvas')
+        patternCanvas.width = patternCanvas.height = 10
+        var ctx = patternCanvas.getContext('2d')
+
+        ctx.strokeStyle = this.color
+        ctx.lineWidth = 5
+        ctx.beginPath()
+        ctx.moveTo(0, 5)
+        ctx.lineTo(10, 5)
+        ctx.closePath()
+        ctx.stroke()
+
+        return patternCanvas
+      }
+    }
     /*
     监听屏幕大小变化,旋转
     */
@@ -288,6 +308,14 @@ export default {
     setLineColor () {
       // console.log(this.lineColor);
       this.canvas.freeDrawingBrush.color = this.lineColor
+    },
+    /* 笔锋测试 */
+    setPenShape () {
+      this.canvas.freeDrawingBrush = this.vLinePatternBrush
+      const brush = this.canvas.freeDrawingBrush
+      if (brush.getPatternSrc) {
+        brush.source = brush.getPatternSrc()
+      }
     }
   }
 }

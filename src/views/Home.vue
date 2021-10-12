@@ -61,14 +61,14 @@
         ><el-button @click="eraserTrigger">橡皮擦</el-button></el-menu-item
       >
       <el-menu-item class="menu-item" index="11"
-        ><el-button @click="penShape">笔锋</el-button></el-menu-item
+        ><el-button @click="setPenShape">笔锋</el-button></el-menu-item
       >
-      <el-menu-item class="menu-item" index="12">
+      <!-- <el-menu-item class="menu-item" index="12">
         <el-button @click="scaleUp">放大</el-button>
       </el-menu-item>
       <el-menu-item class="menu-item" index="13">
         <el-button @click="scaleDown">缩小</el-button>
-      </el-menu-item>
+      </el-menu-item> -->
       <el-menu-item class="menu-item" index="14">
         <el-button @click="showLineWidthDialog">粗细</el-button>
       </el-menu-item>
@@ -79,9 +79,9 @@
           v-model="color"
         ></el-color-picker>
       </el-menu-item>
-      <el-menu-item class="menu-item" index="16">
+      <!-- <el-menu-item class="menu-item" index="16">
         <span>放大倍数{{ magnifi }}</span>
-      </el-menu-item>
+      </el-menu-item> -->
     </el-menu>
     <!-- 画布组件 -->
     <fabric-canvas :lineWidth="lineWidth" :lineColor="color" ref="sig" />
@@ -180,6 +180,10 @@ export default {
       this.$nextTick(function () {
         this.$refs.sig.setLineColor()
       })
+    },
+    /* 笔锋测试 */
+    setPenShape () {
+      this.$refs.sig.setPenShape()
     }
   }
 }
