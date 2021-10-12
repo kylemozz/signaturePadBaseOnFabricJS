@@ -2,7 +2,9 @@
   <div class="container">
     <el-menu class="el-menu-demo" mode="horizontal">
       <el-menu-item class="menu-item" index="1">
-        <el-button @click="switchMode">{{ Mode }}</el-button></el-menu-item
+        <el-button disabled @click="switchMode">{{
+          Mode
+        }}</el-button></el-menu-item
       >
       <el-menu-item class="menu-item" index="1"
         ><el-button @click="download">保存</el-button></el-menu-item
@@ -44,11 +46,7 @@
         ></el-menu-item
       > -->
       <el-menu-item class="menu-item" index="6"
-        ><el-button
-          :type="btnHighlight || imgFlag ? 'primary' : ''"
-          @click="saveTraceAsJSON"
-          >导出轨迹</el-button
-        ></el-menu-item
+        ><el-button @click="saveTraceAsJSON">导出轨迹</el-button></el-menu-item
       >
       <el-menu-item class="menu-item" index="7"
         ><el-button @click="jsonInput">导入轨迹</el-button></el-menu-item
@@ -60,9 +58,7 @@
         ><el-button @click="traceBackward">撤回</el-button></el-menu-item
       >
       <el-menu-item class="menu-item" index="10"
-        ><el-button :type="eraserFlag ? 'primary' : ''" @click="eraserTrigger"
-          >橡皮擦</el-button
-        ></el-menu-item
+        ><el-button @click="eraserTrigger">橡皮擦</el-button></el-menu-item
       >
       <el-menu-item class="menu-item" index="11"
         ><el-button @click="penShape">笔锋</el-button></el-menu-item
@@ -74,20 +70,12 @@
         <el-button @click="scaleDown">缩小</el-button>
       </el-menu-item>
       <el-menu-item class="menu-item" index="14">
-        <span>粗细：</span>
-        <el-input
-          class="width-input"
-          placeholder="输入粗细"
-          v-model="width"
-          clearable
-          @blur="penSizeChange(width)"
-        >
-        </el-input>
+        <el-button @click="showLineWidthDialog">粗细</el-button>
       </el-menu-item>
       <el-menu-item class="menu-item" index="15">
         <span>颜色：</span>
         <el-color-picker
-          @change="colorChange(color)"
+          @change="colorChange"
           v-model="color"
         ></el-color-picker>
       </el-menu-item>
@@ -95,7 +83,11 @@
         <span>放大倍数{{ magnifi }}</span>
       </el-menu-item>
     </el-menu>
-    <fabricCanvas ref="sig" />
+    <!-- 画布组件 -->
+    <fabric-canvas :lineWidth="lineWidth" :lineColor="color" ref="sig" />
+    <el-dialog title="粗细" :visible.sync="lineWidthDialogVisible">
+      <el-slider @change="lineWidthChange" v-model="lineWidth"></el-slider>
+    </el-dialog>
   </div>
 </template>
 
@@ -123,7 +115,10 @@ export default {
         }
       ],
       drawingMode: true,
-      imageType: 'jpg'
+      imageType: 'jpg',
+      lineWidthDialogVisible: false,
+      lineWidth: 5,
+      color: '#000000'
     }
   },
   computed: {
@@ -134,8 +129,8 @@ export default {
   methods: {
     /* 绘画模式切换 */
     switchMode () {
-      this.$refs.sig.switchMode()
       this.drawingMode = !this.drawingMode
+      this.$refs.sig.switchMode(this.drawingMode)
     },
     /* 清除画布 */
     clear () {
@@ -165,6 +160,26 @@ export default {
     /* json导入 */
     jsonInput () {
       this.$refs.sig.jsonInput()
+    },
+    /* 触发橡皮擦 */
+    eraserTrigger () {
+      this.drawingMode = !this.drawingMode
+      this.$refs.sig.switchMode(this.drawingMode)
+    },
+    /* 展示粗细对话框 */
+    showLineWidthDialog () {
+      this.lineWidthDialogVisible = true
+    },
+    /* 改变笔触 */
+    lineWidthChange () {
+      this.$refs.sig.setLineWidth()
+    },
+    /* 改变颜色 */
+    colorChange () {
+      console.log(this.color)
+      this.$nextTick(function () {
+        this.$refs.sig.setLineColor()
+      })
     }
   }
 }

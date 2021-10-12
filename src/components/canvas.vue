@@ -25,6 +25,16 @@ import { fabric } from 'fabric'
 export default {
   name: 'Home',
   components: {},
+  props: {
+    lineWidth: {
+      type: Number,
+      default: 1
+    },
+    lineColor: {
+      type: String,
+      default: '#000000'
+    }
+  },
   data () {
     return {
       canvas: '', // fabricCanvas
@@ -51,7 +61,33 @@ export default {
         }, 200)
       }.bind(this)
     )
-
+    /*
+      删除功能相关
+      (如果日后与放大缩小功能有冲突可以加一个删除的标志标志变量)
+    */
+    this.canvas.on(
+      'selection:created',
+      function (e) {
+        this.historyLock = true // 删除时锁定列表、
+        if (e.target._objects) {
+          // 多选删除
+          const etCount = e.target._objects.length
+          for (let etindex = 0; etindex < etCount; etindex++) {
+            this.canvas.remove(e.target._objects[etindex])
+          }
+          // 删除完之后undo写入当前状态
+          this.undoHistory.push(JSON.stringify(this.canvas)) // UNDO処理
+          this.historyLock = false
+        } else {
+          // 单选删除
+          this.canvas.remove(e.target)
+          // 删除完之后undo写入当前状态
+          this.undoHistory.push(JSON.stringify(this.canvas)) // UNDO処理
+          this.historyLock = false
+        }
+        this.canvas.discardActiveObject() // 清楚选中框
+      }.bind(this)
+    )
     /*
       前进后退功能相关
     */
@@ -92,7 +128,7 @@ export default {
     },
     /* 后退函数 */
     undo () {
-      console.log(this.undoHistory)
+      // console.log(this.undoHistory)
       if (this.undoHistory.length > 0) {
         this.historyLock = true // 执行前先锁定列表
         // undo弹出末尾状态，redo压入该状态
@@ -102,6 +138,7 @@ export default {
         }
         // 取弹出状态后的undo的最后一位（即弹出前的倒数第二为），重新渲染该状态，并取消锁定
         const content = this.undoHistory[this.undoHistory.length - 1]
+        // console.log(content)
         this.canvas.loadFromJSON(
           content,
           function () {
@@ -113,7 +150,7 @@ export default {
     },
     /* 前进函数 */
     redo () {
-      console.log(this.redoHistroy)
+      // console.log(this.redoHistroy)
       if (this.redoHistroy.length > 0) {
         this.historyLock = true // 执行前锁定列表
         // redo弹出末尾状态 undo压入 canvas渲染该状态
@@ -157,8 +194,8 @@ export default {
       })
     },
     /* 绘画模式切换 */
-    switchMode () {
-      this.canvas.isDrawingMode = !this.canvas.isDrawingMode
+    switchMode (val) {
+      this.canvas.isDrawingMode = val
     },
     /* 清除画布 */
     canvasClear () {
@@ -203,6 +240,8 @@ export default {
       const that = this
       const fileType = e.target.files[0].type
       const url = URL.createObjectURL(e.target.files[0])
+      console.log(that.canvas)
+
       if (fileType === 'image/png' || fileType === 'image/jpeg') {
         fabric.Image.fromURL(url, function (img) {
           that.canvas.add(img)
@@ -218,7 +257,37 @@ export default {
     },
     /* 导入json至canvas */
     jsonAdd (e) {
-      console.log(e)
+      // console.log(e)
+      const that = this
+      const file = e.target.files[0]
+      const fileType = e.target.files[0].type
+      // console.log(e.target.files[0])
+      // console.log(that.canvas)
+
+      if (fileType === 'application/json') {
+        let jsonFile = ''
+        const fileReader = new FileReader()
+        // 读取内容并加载在画板上
+        fileReader.onload = function (evt) {
+          jsonFile = evt.target.result
+          //   console.log(jsonFile);
+          that.canvas.loadFromJSON(jsonFile, function () {
+            that.canvas.renderAll()
+          })
+        }
+        fileReader.readAsText(file)
+      } else {
+        alert('不支持此类型文件')
+      }
+    },
+    /* 设置笔触粗细 */
+    setLineWidth () {
+      this.canvas.freeDrawingBrush.width = this.lineWidth
+    },
+    /* 设置笔触颜色 */
+    setLineColor () {
+      // console.log(this.lineColor);
+      this.canvas.freeDrawingBrush.color = this.lineColor
     }
   }
 }
