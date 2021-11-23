@@ -48,24 +48,25 @@ export default {
     this.canvasPorpertyInit()
 
     /* 创建笔刷 */
-    if (fabric.PatternBrush) {
-      this.vLinePatternBrush = new fabric.PatternBrush(this.canvas)
-      this.vLinePatternBrush.getPatternSrc = function () {
-        var patternCanvas = fabric.document.createElement('canvas')
-        patternCanvas.width = patternCanvas.height = 10
-        var ctx = patternCanvas.getContext('2d')
+    this.createBrush()
+    // if (fabric.PatternBrush) {
+    //   this.vLinePatternBrush = new fabric.PatternBrush(this.canvas)
+    //   this.vLinePatternBrush.getPatternSrc = function () {
+    //     var patternCanvas = fabric.document.createElement('canvas')
+    //     patternCanvas.width = patternCanvas.height = 10
+    //     var ctx = patternCanvas.getContext('2d')
 
-        ctx.strokeStyle = this.color
-        ctx.lineWidth = 5
-        ctx.beginPath()
-        ctx.moveTo(0, 5)
-        ctx.lineTo(10, 5)
-        ctx.closePath()
-        ctx.stroke()
+    //     ctx.strokeStyle = this.color
+    //     ctx.lineWidth = 5
+    //     ctx.beginPath()
+    //     ctx.moveTo(0, 5)
+    //     ctx.lineTo(10, 5)
+    //     ctx.closePath()
+    //     ctx.stroke()
 
-        return patternCanvas
-      }
-    }
+    //     return patternCanvas
+    //   }
+    // }
     /*
     监听屏幕大小变化,旋转
     */
@@ -136,6 +137,78 @@ export default {
     )
   },
   methods: {
+    /* 创建笔刷 */
+    createBrush () {
+      fabric.MarkerBrush = fabric.util.createClass(fabric.BaseBrush, {
+        color: '#000', // 颜色
+        opacity: 1, // 透明度
+        width: 30, // 宽度
+
+        _baseWidth: 10, // 基础宽度
+        _lastPoint: null,
+        _lineWidth: 3,
+        _point: null,
+        _size: 0,
+
+        initialize: function (canvas, opt) {
+          opt = opt || {}
+
+          this.canvas = canvas
+          this.width = opt.width || canvas.freeDrawingBrush.width
+          this.color = opt.color || canvas.freeDrawingBrush.color
+          this.opacity = opt.opacity || canvas.contextTop.globalAlpha
+          this.canvas.contextTop.globalAlpha = this.opacity
+          this._point = new fabric.Point()
+
+          this.canvas.contextTop.lineJoin = 'round'
+          this.canvas.contextTop.lineCap = 'round'
+        },
+
+        _render: function (pointer) {
+          var ctx, lineWidthDiff
+
+          ctx = this.canvas.contextTop
+
+          ctx.beginPath()
+
+          for (
+            let i = 0, len = this._size / this._lineWidth / 2;
+            i < len;
+            i++
+          ) {
+            lineWidthDiff = (this._lineWidth - 1) * i
+
+            ctx.globalAlpha = 0.8 * this.opacity
+            ctx.moveTo(
+              this._lastPoint.x + lineWidthDiff,
+              this._lastPoint.y + lineWidthDiff
+            )
+            ctx.lineTo(pointer.x + lineWidthDiff, pointer.y + lineWidthDiff)
+            ctx.stroke()
+          }
+
+          this._lastPoint = new fabric.Point(pointer.x, pointer.y)
+        },
+
+        onMouseDown: function (pointer) {
+          this._lastPoint = pointer
+          this.canvas.contextTop.strokeStyle = this.color
+          this.canvas.contextTop.lineWidth = this._lineWidth
+          this._size = this.width + this._baseWidth
+        },
+
+        onMouseMove: function (pointer) {
+          if (this.canvas._isCurrentlyDrawing) {
+            this._render(pointer)
+          }
+        },
+
+        onMouseUp: function () {
+          this.canvas.contextTop.globalAlpha = this.opacity
+          this.canvas.contextTop.globalAlpha = 1
+        }
+      })
+    },
     /* 保存当前canvas为json并下载 */
     saveTraceAsJSON () {
       const content = JSON.stringify(this.canvas)
@@ -308,14 +381,19 @@ export default {
     setLineColor () {
       // console.log(this.lineColor);
       this.canvas.freeDrawingBrush.color = this.lineColor
-    },
-    /* 笔锋测试 */
-    setPenShape () {
-      this.canvas.freeDrawingBrush = this.vLinePatternBrush
       const brush = this.canvas.freeDrawingBrush
       if (brush.getPatternSrc) {
         brush.source = brush.getPatternSrc()
       }
+    },
+    /* 笔锋测试 */
+    setPenShape () {
+      // this.canvas.freeDrawingBrush = this.vLinePatternBrush
+      // const brush = this.canvas.freeDrawingBrush
+      // if (brush.getPatternSrc) {
+      //   brush.source = brush.getPatternSrc()
+      // }
+      this.canvas.freeDrawingBrush = new fabric.MarkerBrush(this.canvas, {})
     }
   }
 }
