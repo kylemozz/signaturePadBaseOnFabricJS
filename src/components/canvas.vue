@@ -139,6 +139,49 @@ export default {
   methods: {
     /* 创建笔刷 */
     createBrush () {
+      fabric.util.trimCanvas = function (canvas) {
+        var ctx = canvas.getContext('2d')
+        var w = canvas.width
+        var h = canvas.height
+        var pix = { x: [], y: [] }
+        var n
+        var imageData = ctx.getImageData(0, 0, w, h)
+        var fn = function (a, b) {
+          return a - b
+        }
+
+        for (var y = 0; y < h; y++) {
+          for (var x = 0; x < w; x++) {
+            if (imageData.data[(y * w + x) * 4 + 3] > 0) {
+              pix.x.push(x)
+              pix.y.push(y)
+            }
+          }
+        }
+        pix.x.sort(fn)
+        pix.y.sort(fn)
+        n = pix.x.length - 1
+
+        // if (n == -1) {
+        // Nothing to trim... empty canvas?
+        // }
+
+        w = pix.x[n] - pix.x[0]
+        h = pix.y[n] - pix.y[0]
+        var cut = ctx.getImageData(pix.x[0], pix.y[0], w, h)
+
+        canvas.width = w
+        canvas.height = h
+        ctx.putImageData(cut, 0, 0)
+
+        return { x: pix.x[0], y: pix.y[0] }
+      }
+      fabric.BaseBrush.prototype.convertToImg = function () {
+        var c = fabric.util.copyCanvasElement(this.canvas.upperCanvasEl)
+        var img = new fabric.Image(c)
+        this.canvas.add(img)
+        this.canvas.clearContext(this.canvas.contextTop)
+      }
       fabric.MarkerBrush = fabric.util.createClass(fabric.BaseBrush, {
         color: '#000', // 颜色
         opacity: 1, // 透明度
@@ -206,6 +249,7 @@ export default {
         onMouseUp: function () {
           this.canvas.contextTop.globalAlpha = this.opacity
           this.canvas.contextTop.globalAlpha = 1
+          this.convertToImg()
         }
       })
     },
@@ -319,6 +363,7 @@ export default {
         link.download = `signature.${ext}`
         link.click()
       }
+      // console.log(this.canvas)
     },
     /* 图片导入触发点击事件 */
     imageInput () {
