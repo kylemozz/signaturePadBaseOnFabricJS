@@ -139,58 +139,22 @@ export default {
   methods: {
     /* 创建笔刷 */
     createBrush () {
-      fabric.util.trimCanvas = function (canvas) {
-        var ctx = canvas.getContext('2d')
-        var w = canvas.width
-        var h = canvas.height
-        var pix = { x: [], y: [] }
-        var n
-        var imageData = ctx.getImageData(0, 0, w, h)
-        var fn = function (a, b) {
-          return a - b
-        }
-
-        for (var y = 0; y < h; y++) {
-          for (var x = 0; x < w; x++) {
-            if (imageData.data[(y * w + x) * 4 + 3] > 0) {
-              pix.x.push(x)
-              pix.y.push(y)
-            }
-          }
-        }
-        pix.x.sort(fn)
-        pix.y.sort(fn)
-        n = pix.x.length - 1
-
-        // if (n == -1) {
-        // Nothing to trim... empty canvas?
-        // }
-
-        w = pix.x[n] - pix.x[0]
-        h = pix.y[n] - pix.y[0]
-        var cut = ctx.getImageData(pix.x[0], pix.y[0], w, h)
-
-        canvas.width = w
-        canvas.height = h
-        ctx.putImageData(cut, 0, 0)
-
-        return { x: pix.x[0], y: pix.y[0] }
-      }
       fabric.BaseBrush.prototype.convertToImg = function () {
         var c = fabric.util.copyCanvasElement(this.canvas.upperCanvasEl)
         var img = new fabric.Image(c)
         this.canvas.add(img)
         this.canvas.clearContext(this.canvas.contextTop)
       }
-      fabric.MarkerBrush = fabric.util.createClass(fabric.BaseBrush, {
+      fabric.MarkerBrush = fabric.util.createClass(fabric.PencilBrush, {
         color: '#000', // 颜色
         opacity: 1, // 透明度
         width: 30, // 宽度
-
+        decimate: 0.4,
         _baseWidth: 10, // 基础宽度
         _lastPoint: null,
         _lineWidth: 3,
         _point: null,
+        _points: [],
         _size: 0,
 
         initialize: function (canvas, opt) {
@@ -208,8 +172,10 @@ export default {
         },
 
         _render: function (pointer) {
+          if (!pointer) {
+            return
+          }
           var ctx, lineWidthDiff
-
           ctx = this.canvas.contextTop
 
           ctx.beginPath()
@@ -227,9 +193,20 @@ export default {
               this._lastPoint.y + lineWidthDiff
             )
             ctx.lineTo(pointer.x + lineWidthDiff, pointer.y + lineWidthDiff)
+            const p1 = new fabric.Point(
+              this._lastPoint.x + lineWidthDiff,
+              this._lastPoint.y + lineWidthDiff
+            )
+            const p2 = new fabric.Point(
+              pointer.x + lineWidthDiff,
+              pointer.y + lineWidthDiff
+            )
+            this._points.push(p1)
+            this._points.push(p2)
+            this._finalizeAndAddPath()
             ctx.stroke()
           }
-
+          // points = []
           this._lastPoint = new fabric.Point(pointer.x, pointer.y)
         },
 
@@ -245,11 +222,52 @@ export default {
             this._render(pointer)
           }
         },
-
+        joinPath: function (pathData) {
+          return pathData
+            .map(function (segment) {
+              return segment.join(' ')
+            })
+            .join(' ')
+        },
         onMouseUp: function () {
           this.canvas.contextTop.globalAlpha = this.opacity
           this.canvas.contextTop.globalAlpha = 1
-          this.convertToImg()
+
+          this._points = []
+          // this.convertToImg()
+        },
+        // _isEmptySVGPath: function (pathData) {
+        //   var pathString = this.joinPath(pathData)
+        //   return pathString === 'M 0 0 Q 0 0 0 0 L 0 0'
+        // },
+        _finalizeAndAddPath: function () {
+          // console.log(this._points)
+          var ctx = this.canvas.contextTop
+          ctx.closePath()
+          if (this.decimate) {
+            this._points = this.decimatePoints(this._points, this.decimate)
+          }
+          console.log(this._points)
+          var pathData = this.convertPointsToSVGPath(this._points).join('')
+          console.log(pathData)
+          // if (this._isEmptySVGPath(pathData)) {
+          //   // do not create 0 width/height paths, as they are
+          //   // rendered inconsistently across browsers
+          //   // Firefox 4, for example, renders a dot,
+          //   // whereas Chrome 10 renders nothing
+          //   this.canvas.requestRenderAll()
+          //   return
+          // }
+          var path = this.createPath(pathData)
+          console.log(path)
+          this.canvas.clearContext(this.canvas.contextTop)
+          this.canvas.fire('before:path:created', { path: path })
+          this.canvas.add(path)
+          this.canvas.requestRenderAll()
+          path.setCoords()
+          // this._resetShadow()
+          // fire event 'path' created
+          this.canvas.fire('path:created', { path: path })
         }
       })
     },
@@ -358,6 +376,7 @@ export default {
           format: ext,
           enableRetinaScaling: true
         })
+        console.log(base64)
         const link = document.createElement('a')
         link.href = base64
         link.download = `signature.${ext}`
